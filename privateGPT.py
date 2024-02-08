@@ -64,7 +64,14 @@ def main():
         case _default:
             print(f"Model {model_type} not supported!")
             exit;
-    qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, return_source_documents= not args.hide_source)
+    qa = RetrievalQA.from_chain_type(llm=llm, chain_type="stuff", retriever=retriever, chain_type_kwargs={
+        "verbose": True,
+        "prompt": prompt,
+        "memory": ConversationBufferMemory(
+            memory_key="history",
+            input_key="question")},
+        return_source_documents= not args.hide_source)
+    
     # Interactive questions and answers
     while True:
         query = input("\nEnter a query: ")
@@ -73,14 +80,40 @@ def main():
 
         from langchain.prompts import PromptTemplate
 
-        prompt_template = PromptTemplate.from_template(
-            "Voici les documents sources :\n---------------\n{context}\n---------------\n\nQuestion : " + query
+        #prompt_template = PromptTemplate.from_template(
+        #    "Voici le contexte :\n---------------\n{context}\n---------------\n\nQuestion : " + query
+        #)
+
+        #prompt = prompt_template.format(context="Tu es Mistral, un assistant IA au GSDLT au sein de l'armée de terre française. Tu es un expert et tu t'appuis sur les documents fournis pour répondre à la question mais il ne faut pas que tu invente les réponses. Tu réponds uniquement en français et si tu ne connais pas la réponse alors tu dis : Ju ne peux pas répondre car ju ne connais pas la réponse")
+
+        context = "Tu es Mistral, un assistant IA au GSDLT au sein de l'armée de terre française. Tu es un expert et tu t'appuis sur les documents fournis pour répondre à la question mais il ne faut pas que tu invente les réponses. Tu réponds uniquement en français et si tu ne connais pas la réponse alors tu dis : Ju ne peux pas répondre car ju ne connais pas la réponse"
+
+        template = """
+        Utilise le contexte suivant (délimité par <ctx></ctx>) et l'historique de la conversation (délimité par <hs></hs>) pour répondre à la question:
+        ------
+        <ctx>
+        {context}
+        </ctx>
+        ------
+        <hs>
+        {history}
+        </hs>
+        ------
+        {question}
+        Réponse:
+        """
+        prompt = PromptTemplate(
+            input_variables=["history", "history", "question"],
+            template=template,
         )
 
-        prompt = prompt_template.format(context="Tu es Mistral, un assistant IA au GSDLT au sein de l'armée de terre française. Tu es un expert et tu t'appuis sur les documents fournis pour répondre à la question mais il ne faut pas que tu invente les réponses. Tu réponds uniquement en français et si tu ne connais pas la réponse alors tu dis : Ju ne peux pas répondre car ju ne connais pas la réponse")
+
+
+
 
         # Get the answer from the chain
-        res = qa(prompt)
+        #res = qa(prompt)
+        res = qa.run(query)
         answer, docs = res['result'], [] if args.hide_source else res['source_documents']
 
         # Print the result
