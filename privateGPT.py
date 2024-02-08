@@ -71,6 +71,14 @@ def main():
         if query == "exit":
             break
 
+        from langchain.prompts import PromptTemplate
+
+        prompt_template = PromptTemplate.from_template(
+            "{context}\n" + query
+        )
+
+        prompt = prompt_template.format(context="Tu es Mistral, un assistant IA au GSDLT au sein de l'armée de terre française. Tu es un expert et tu t'appuis sur les documents fournis mais il ne faut pas que tu invente les réponses. Tu réponds uniquement en français et si tu ne connais pas la réponse alors tu dis que tu ne connais pas la réponse")
+
         # Get the answer from the chain
         res = qa(query)
         answer, docs = res['result'], [] if args.hide_source else res['source_documents']
